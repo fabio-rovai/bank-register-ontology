@@ -23,5 +23,6 @@
       "relation": "isSupplementTo",
       "identifier": "https://github.com/fabio-rovai/bank-register-ontology"
     }
-  ]
+  ],
+  "version": "0.2.0"
 }
