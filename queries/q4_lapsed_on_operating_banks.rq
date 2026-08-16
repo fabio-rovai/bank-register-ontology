@@ -1,0 +1,11 @@
+# Active insured institutions whose LEI registration has lapsed,
+# retired or duplicated in the Global LEI System. Expected: 283.
+PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+SELECT ?name ?status ?assets WHERE {
+  ?inst a bank:InsuredDepositoryInstitution ;
+        bank:legalName ?name ;
+        bank:totalAssets ?assets ;
+        bank:identifiedBy ?a .
+  ?a bank:gleifRegistrationStatus ?status .
+  FILTER (?status IN ("LAPSED", "RETIRED", "DUPLICATE", "ANNULLED"))
+} ORDER BY DESC(?assets)

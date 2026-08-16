@@ -1,0 +1,240 @@
+@prefix bank:    <https://gov.tesseract.academy/def/banking#> .
+@prefix banksch: <https://gov.tesseract.academy/def/banking/scheme#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+<https://gov.tesseract.academy/def/banking>
+    a owl:Ontology ;
+    dcterms:title "Bank Register Ontology (BRO)"@en ;
+    dcterms:creator "Fabio Rovai" ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    rdfs:comment """An open OWL 2 ontology for the entity fabric and regulatory-reporting concept fabric of US banking. First instantiated against the FDIC BankFind institutions register, the GLEIF golden copy (Levels 1 and 2), and the Federal Reserve's MDRM data dictionary.
+
+Third vertical instantiation of the design stance established in the Investment Fund Ontology (https://github.com/fabio-rovai/investment-fund-ontology) and the Insurance Register Ontology (https://github.com/fabio-rovai/insurance-register-ontology): identifiers are reified assertions carrying scheme, source system, and computed validation state, so that cross-system disagreement is a query rather than an audit project.
+
+Two commitments in this ontology are forced by defects found in the source data and do not appear in the sibling ontologies:
+
+(1) An identifier assertion may carry a value that is not a well-formed instance of its own scheme. Every LEI value published by the FDIC is truncated to 16 of the 20 characters ISO 17442 requires, discarding both ISO 7064 check digits. A model in which an identifier IS its referent cannot represent this at all. Here, resolution is data: an assertion records what it resolves to, and how many candidates it resolved to.
+
+(2) An institution's identifier assertion may resolve to a DIFFERENT legal entity than the institution itself, most commonly its parent holding company. Modelling the insured depository institution separately from the legal entity is what makes that statable rather than merely wrong."""@en .
+
+#################################################################
+# Entities. The distinction between the insured institution and
+# the legal entity is load-bearing: it is precisely the conflation
+# that produces parent-LEI-recorded-against-subsidiary errors.
+#################################################################
+
+bank:LegalEntity a owl:Class ;
+    rdfs:label "legal entity"@en ;
+    rdfs:comment "A legal person. The referent of an LEI. A bank holding company and its subsidiary bank are two legal entities."@en .
+
+bank:InsuredDepositoryInstitution a owl:Class ;
+    rdfs:subClassOf bank:LegalEntity ;
+    rdfs:label "insured depository institution"@en ;
+    rdfs:comment "A depository institution whose deposits are insured by the FDIC, identified by an FDIC certificate number. The unit of the FDIC BankFind register."@en .
+
+bank:BankHoldingCompany a owl:Class ;
+    rdfs:subClassOf bank:LegalEntity ;
+    rdfs:label "bank holding company"@en ;
+    rdfs:comment "A company controlling one or more banks. Identified in Federal Reserve systems by an RSSD, and carried in the FDIC register as the high holder (RSSDHCR) of an insured institution."@en .
+
+bank:RegulatoryAuthority a owl:Class ;
+    rdfs:label "regulatory authority"@en ;
+    rdfs:comment "A supervisory or chartering authority: the FDIC, the OCC, the Federal Reserve, a state banking department."@en .
+
+bank:chartering a owl:ObjectProperty ;
+    rdfs:domain bank:InsuredDepositoryInstitution ; rdfs:range bank:RegulatoryAuthority ;
+    rdfs:label "chartering authority"@en .
+bank:primaryFederalRegulator a owl:ObjectProperty ;
+    rdfs:domain bank:InsuredDepositoryInstitution ; rdfs:range bank:RegulatoryAuthority ;
+    rdfs:label "primary federal regulator"@en .
+
+bank:legalName a owl:DatatypeProperty ; rdfs:label "legal name"@en .
+bank:totalAssets a owl:DatatypeProperty ; rdfs:range xsd:decimal ;
+    rdfs:label "total assets (USD thousands, as reported)"@en .
+bank:domesticOffices a owl:DatatypeProperty ; rdfs:range xsd:integer ;
+    rdfs:label "domestic offices"@en .
+bank:isActive a owl:DatatypeProperty ; rdfs:range xsd:boolean ;
+    rdfs:label "active in the register"@en .
+
+#################################################################
+# Control, reified. Two authorities assert control independently
+# (the FDIC's high-holder field and GLEIF's Level 2 consolidation
+# records) and they do not always agree, so the assertion carries
+# its source.
+#################################################################
+
+bank:ControlAssertion a owl:Class ;
+    rdfs:label "control assertion"@en ;
+    rdfs:comment "One source system's claim that one entity controls or consolidates another. Reified so that the FDIC's high-holder claim and GLEIF's consolidation record are separate, comparable statements about the same pair."@en .
+
+bank:controlled a owl:ObjectProperty ;
+    rdfs:domain bank:ControlAssertion ; rdfs:range bank:LegalEntity ;
+    rdfs:label "controlled entity"@en .
+bank:controller a owl:ObjectProperty ;
+    rdfs:domain bank:ControlAssertion ; rdfs:range bank:LegalEntity ;
+    rdfs:label "controlling entity"@en .
+bank:controlType a owl:ObjectProperty ;
+    rdfs:domain bank:ControlAssertion ; rdfs:range skos:Concept ;
+    rdfs:label "control type"@en ;
+    rdfs:comment "Points into the SKOS registry: FDIC high holder, GLEIF direct consolidation, GLEIF ultimate consolidation."@en .
+
+#################################################################
+# The identifier fabric. An Identifier here is an identifier
+# ASSERTION: a value, in a scheme, made by a source system, with
+# computed conformance and resolution state.
+#################################################################
+
+bank:IdentifierAssertion a owl:Class ;
+    rdfs:label "identifier assertion"@en ;
+    rdfs:comment "A reified claim that some source system records some value, in some scheme, for some entity. Deliberately NOT identifier-as-designator: a value that is malformed, ambiguous, or belongs to a different entity is representable, queryable state."@en .
+
+bank:LEIAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
+    rdfs:label "LEI assertion"@en .
+bank:RSSDAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
+    rdfs:label "RSSD assertion"@en ;
+    rdfs:comment "The Federal Reserve's Replication Server System Database identifier. Carries no check digit, so a mistyped RSSD is undetectable without a lookup; the scheme registry records that absence as data."@en .
+bank:FDICCertAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
+    rdfs:label "FDIC certificate assertion"@en .
+
+bank:identifiedBy a owl:ObjectProperty ;
+    rdfs:range bank:IdentifierAssertion ; rdfs:label "identified by"@en .
+bank:assertedValue a owl:DatatypeProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:label "asserted value"@en ;
+    rdfs:comment "The value exactly as the source system publishes it, including any truncation or case violation. Never silently repaired."@en .
+bank:identifierScheme a owl:ObjectProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range skos:Concept ;
+    rdfs:label "identifier scheme"@en .
+bank:sourceSystem a owl:ObjectProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range skos:Concept ;
+    rdfs:label "source system"@en .
+
+bank:schemeConformant a owl:DatatypeProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range xsd:boolean ;
+    rdfs:label "conforms to its scheme"@en ;
+    rdfs:comment "Computed: does the asserted value satisfy the length, character-set, case and check-digit rules the scheme registry declares? Arithmetic in code, policy in shapes."@en .
+bank:nonConformanceReason a owl:ObjectProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range skos:Concept ;
+    rdfs:label "non-conformance reason"@en ;
+    rdfs:comment "Points into the SKOS registry: truncated, wrong case, failed check digits, malformed."@en .
+bank:checksumValid a owl:DatatypeProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range xsd:boolean ;
+    rdfs:label "check digits valid"@en ;
+    rdfs:comment "Only meaningful where the scheme defines a check digit AND the value is long enough to carry it. A truncated LEI is not checksum-invalid; it is checksum-UNTESTABLE, which is a materially different governance state."@en .
+
+#################################################################
+# Resolution. Forced by the data: a non-conformant value must
+# still be joined to the real world, and the join may fail, may
+# succeed uniquely, or may be genuinely ambiguous.
+#################################################################
+
+bank:resolvesTo a owl:ObjectProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range bank:LegalEntity ;
+    rdfs:label "resolves to"@en ;
+    rdfs:comment "The legal entity the asserted value is determined to denote, after resolution against the authoritative register for the scheme. Asserted only where resolution is unique."@en .
+bank:resolutionCardinality a owl:DatatypeProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range xsd:integer ;
+    rdfs:label "resolution cardinality"@en ;
+    rdfs:comment "How many entities in the authoritative register the asserted value could denote. 1 is resolvable; 0 is unresolvable; greater than 1 is ambiguous. For a 16-character truncation of a 20-character LEI the arithmetic ceiling is 1296 candidate completions, of which the register decides how many exist."@en .
+bank:resolutionMethod a owl:ObjectProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range skos:Concept ;
+    rdfs:label "resolution method"@en .
+
+bank:denotesDifferentEntity a owl:DatatypeProperty ;
+    rdfs:domain bank:IdentifierAssertion ; rdfs:range xsd:boolean ;
+    rdfs:label "denotes a different entity than the one identified"@en ;
+    rdfs:comment "True where the assertion is attached to institution X but resolves to legal entity Y, X is not Y. The characteristic case is a subsidiary bank's record carrying its parent holding company's LEI."@en .
+
+#################################################################
+# Registration facets carried from the authoritative register.
+#################################################################
+
+bank:gleifEntityStatus a owl:DatatypeProperty ;
+    rdfs:domain bank:LEIAssertion ; rdfs:label "GLEIF entity status"@en .
+bank:gleifRegistrationStatus a owl:DatatypeProperty ;
+    rdfs:domain bank:LEIAssertion ; rdfs:label "GLEIF registration status"@en ;
+    rdfs:comment "ISSUED, LAPSED, RETIRED, DUPLICATE, ANNULLED. A LAPSED LEI remains a valid identifier whose annual renewal was not made."@en .
+bank:gleifLegalName a owl:DatatypeProperty ;
+    rdfs:domain bank:LEIAssertion ; rdfs:label "GLEIF legal name"@en .
+bank:gleifCountry a owl:DatatypeProperty ;
+    rdfs:domain bank:LEIAssertion ; rdfs:label "GLEIF legal jurisdiction country"@en .
+
+#################################################################
+# The regulatory-reporting concept fabric.
+#
+# The Federal Reserve's MDRM publishes one Item Name and one
+# Description per four-digit item code, identical across every
+# reporting form and every date range that uses it. Item code 2170
+# (TOTAL ASSETS) carries a single definition across 117 mnemonics
+# and 64 forms, so the dictionary cannot express that total assets
+# on FR Y-9C (consolidated holding company) has different scope
+# from FFIEC 041 (bank only) or FR Y-14A (projected).
+#
+# The facets that DO vary - confidentiality and item type - vary by
+# form and by period, not by code. So usage is reified: the concept
+# is the code, and everything scope-dependent hangs off the usage.
+#################################################################
+
+bank:ReportingConcept a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "reporting concept"@en ;
+    rdfs:comment "A four-digit MDRM item code together with the single name and definition the Federal Reserve publishes for it. The stable, form-independent nucleus of meaning."@en .
+
+bank:ReportingSeries a owl:Class ;
+    rdfs:label "reporting series"@en ;
+    rdfs:comment "An MDRM mnemonic: the four-letter prefix denoting a collection or form family. Mnemonic plus item code is the eight-character MDRM identifier."@en .
+
+bank:ReportingForm a owl:Class ;
+    rdfs:label "reporting form"@en ;
+    rdfs:comment "A regulatory report, e.g. FFIEC 031, FFIEC 041, FR Y-9C, FR Y-14A, NCUA 5300."@en .
+
+bank:ItemUsage a owl:Class ;
+    rdfs:label "item usage"@en ;
+    rdfs:comment "The use of one reporting concept, in one series, on one form, over one validity period. This is where confidentiality and item type actually live, because the source data shows both varying across forms and across periods for one and the same item code."@en .
+
+bank:usageOf a owl:ObjectProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:range bank:ReportingConcept ;
+    rdfs:label "usage of concept"@en .
+bank:inSeries a owl:ObjectProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:range bank:ReportingSeries ;
+    rdfs:label "in series"@en .
+bank:onForm a owl:ObjectProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:range bank:ReportingForm ;
+    rdfs:label "on reporting form"@en .
+bank:mdrmIdentifier a owl:DatatypeProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:label "MDRM identifier"@en ;
+    rdfs:comment "The eight-character mnemonic + item code."@en .
+bank:itemCode a owl:DatatypeProperty ;
+    rdfs:domain bank:ReportingConcept ; rdfs:label "MDRM item code"@en .
+bank:validFrom a owl:DatatypeProperty ; rdfs:range xsd:date ;
+    rdfs:label "valid from"@en .
+bank:validTo a owl:DatatypeProperty ; rdfs:range xsd:date ;
+    rdfs:label "valid to"@en .
+bank:isOpenEnded a owl:DatatypeProperty ; rdfs:range xsd:boolean ;
+    rdfs:label "open ended"@en ;
+    rdfs:comment "True where the MDRM end date is the 12/31/9999 sentinel."@en .
+
+bank:confidentiality a owl:DatatypeProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:range xsd:boolean ;
+    rdfs:label "confidential"@en ;
+    rdfs:comment "Attached to the USAGE, never to the concept: 1,816 item codes are confidential on one form and public on another, and 1,342 MDRM identifiers change confidentiality across their own date ranges. Disclosure status is not derivable from the item code."@en .
+bank:itemType a owl:ObjectProperty ;
+    rdfs:domain bank:ItemUsage ; rdfs:range skos:Concept ;
+    rdfs:label "item type"@en .
+
+bank:hasDefinition a owl:DatatypeProperty ;
+    rdfs:domain bank:ReportingConcept ;
+    rdfs:label "published definition"@en ;
+    rdfs:comment "The MDRM Description, verbatim. Present for only 19,860 of 47,305 item codes; the remaining 58 percent of the dictionary is name-only."@en .
+bank:definedOnlyInProse a owl:DatatypeProperty ;
+    rdfs:domain bank:ReportingConcept ; rdfs:range xsd:boolean ;
+    rdfs:label "form-specific scope stated only in prose"@en ;
+    rdfs:comment "True where the single published definition smuggles form-specific or period-specific scope into free text, typically under a COMPARABILITY heading, rather than into structure. Flags exactly the content this ontology exists to make queryable."@en .
+
+bank:filesForm a owl:ObjectProperty ;
+    rdfs:domain bank:LegalEntity ; rdfs:range bank:ReportingForm ;
+    rdfs:label "files reporting form"@en ;
+    rdfs:comment "The bridge between the entity fabric and the concept fabric: which institution is obliged to report which form, and therefore which concepts it must be able to produce."@en .

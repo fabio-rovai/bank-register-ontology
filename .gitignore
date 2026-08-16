@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Source data: too large to commit, fully regenerable by the pipeline.
+data/*.csv
+data/*.jsonl
+data/*.zip
+build/*.ttl
+build/*.log

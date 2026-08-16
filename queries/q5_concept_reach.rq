@@ -1,0 +1,14 @@
+# How far one reporting concept reaches across the collection estate:
+# the item codes used on the most distinct reporting forms. Item code
+# 2170 (TOTAL ASSETS) carries ONE definition across all of them.
+PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?code ?label (COUNT(DISTINCT ?form) AS ?forms)
+       (COUNT(DISTINCT ?series) AS ?seriesCount) WHERE {
+  ?u a bank:ItemUsage ;
+     bank:usageOf ?c ;
+     bank:inSeries ?series ;
+     bank:onForm ?form .
+  ?c bank:itemCode ?code ; skos:prefLabel ?label .
+} GROUP BY ?code ?label
+ORDER BY DESC(?forms) LIMIT 20

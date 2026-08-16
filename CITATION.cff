@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Bank Register Ontology (BRO)"
+message: "If you use this ontology or its findings, please cite it."
+type: dataset
+authors:
+  - given-names: Fabio
+    family-names: Rovai
+    email: fabio@thetesseractacademy.com
+    affiliation: "Kampakis and Co Ltd, trading as The Tesseract Academy"
+repository-code: "https://github.com/fabio-rovai/bank-register-ontology"
+abstract: >-
+  An open OWL 2 ontology, SKOS registries and SHACL governance layer for the
+  entity fabric and regulatory-reporting concept fabric of US banking, built
+  against the FDIC BankFind register, the GLEIF golden copy and the Federal
+  Reserve MDRM data dictionary.
+keywords:
+  - ontology
+  - knowledge graph
+  - banking
+  - regulatory reporting
+  - legal entity identifier
+  - data governance
+license: CC-BY-4.0
+date-released: "2026-08-16"

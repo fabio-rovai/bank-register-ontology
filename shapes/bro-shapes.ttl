@@ -1,0 +1,212 @@
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix bank:    <https://gov.tesseract.academy/def/banking#> .
+@prefix banksch: <https://gov.tesseract.academy/def/banking/scheme#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+
+#################################################################
+# Layer 1: structure. What every identifier assertion must carry
+# in order to be auditable at all.
+#################################################################
+
+bank:IdentifierAssertionShape a sh:NodeShape ;
+    sh:targetClass bank:IdentifierAssertion, bank:LEIAssertion,
+                   bank:RSSDAssertion, bank:FDICCertAssertion ;
+    rdfs:label "identifier assertions must be self-describing" ;
+    sh:property [
+        sh:path bank:assertedValue ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ;
+        sh:message "An identifier assertion must record exactly one asserted value, verbatim as the source publishes it." ;
+    ] ;
+    sh:property [
+        sh:path bank:identifierScheme ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "An identifier assertion must name the scheme it claims to be in." ;
+    ] ;
+    sh:property [
+        sh:path bank:sourceSystem ;
+        sh:minCount 1 ;
+        sh:message "An identifier assertion must name the system that asserted it, otherwise cross-source disagreement is not attributable." ;
+    ] ;
+    sh:property [
+        sh:path bank:schemeConformant ;
+        sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:boolean ;
+        sh:message "Conformance must be computed and recorded, not left unknown." ;
+    ] .
+
+#################################################################
+# Layer 2: policy. Each of these encodes a defect actually found
+# in the source registers, so the shape file doubles as the
+# specification of what went wrong.
+#################################################################
+
+bank:NonConformanceMustBeExplainedShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "a non-conformant value must say why" ;
+    sh:sparql [
+        sh:message "Identifier assertion is marked non-conformant but records no reason. Truncation, wrong case and failed check digits demand different remediation and must not be collapsed." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:schemeConformant false .
+                FILTER NOT EXISTS { $this bank:nonConformanceReason ?r }
+            }
+        """ ;
+    ] .
+
+bank:TruncatedIdentifierShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an LEI must not be published truncated" ;
+    sh:sparql [
+        sh:message "LEI value is truncated: shorter than the 20 characters ISO 17442 requires. The discarded characters include both ISO 7064 check digits, so the value cannot be validated in isolation and every downstream join to the Global LEI System is a guess." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            PREFIX banksch: <https://gov.tesseract.academy/def/banking/scheme#>
+            SELECT $this WHERE {
+                $this bank:nonConformanceReason banksch:Truncated .
+            }
+        """ ;
+    ] .
+
+bank:CaseConformanceShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an LEI must be uppercase" ;
+    sh:sparql [
+        sh:message "LEI value contains lowercase characters. ISO 17442 defines the LEI over uppercase alphanumerics only; a case-sensitive join against the Global LEI System silently fails." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            PREFIX banksch: <https://gov.tesseract.academy/def/banking/scheme#>
+            SELECT $this WHERE {
+                $this bank:nonConformanceReason banksch:WrongCase .
+            }
+        """ ;
+    ] .
+
+bank:AmbiguousResolutionShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an identifier must denote exactly one entity" ;
+    sh:sparql [
+        sh:message "This asserted value is compatible with more than one real LEI. It does not identify anything: the register cannot tell which legal entity is meant." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:resolutionCardinality ?n .
+                FILTER (?n > 1)
+            }
+        """ ;
+    ] .
+
+bank:UnresolvableIdentifierShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an identifier must denote at least one entity" ;
+    sh:sparql [
+        sh:message "No LEI in the Global LEI System is compatible with this asserted value. The institution carries an identifier that refers to nothing." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:resolutionCardinality ?n .
+                FILTER (?n = 0)
+            }
+        """ ;
+    ] .
+
+bank:WrongEntityShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an institution's identifier must denote that institution" ;
+    sh:sparql [
+        sh:message "This identifier resolves to a different legal entity than the institution it is recorded against, characteristically the parent holding company. Consolidated and unconsolidated reporting are attributed to the same identifier." ;
+        sh:severity sh:Violation ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:denotesDifferentEntity true .
+            }
+        """ ;
+    ] .
+
+bank:LapsedIdentifierShape a sh:NodeShape ;
+    sh:targetClass bank:LEIAssertion ;
+    rdfs:label "an operating institution should maintain its LEI" ;
+    sh:sparql [
+        sh:message "The institution is active in the FDIC register but its LEI registration is LAPSED, RETIRED, DUPLICATE or ANNULLED in the Global LEI System: authorised to take insured deposits, not maintaining the global identifier." ;
+        sh:severity sh:Warning ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:gleifRegistrationStatus ?s .
+                FILTER (?s IN ("LAPSED", "RETIRED", "DUPLICATE", "ANNULLED"))
+            }
+        """ ;
+    ] .
+
+#################################################################
+# Layer 2, concept fabric. The reporting dictionary's own defects.
+#################################################################
+
+bank:ItemUsageShape a sh:NodeShape ;
+    sh:targetClass bank:ItemUsage ;
+    rdfs:label "a reporting item usage must be scoped" ;
+    sh:property [
+        sh:path bank:usageOf ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:message "A usage must point at exactly one reporting concept." ;
+    ] ;
+    sh:property [
+        sh:path bank:inSeries ;
+        sh:minCount 1 ;
+        sh:message "A usage must name the series (MDRM mnemonic) it belongs to." ;
+    ] ;
+    sh:property [
+        sh:path bank:mdrmIdentifier ;
+        sh:minCount 1 ; sh:pattern "^[A-Za-z0-9]{8}$" ;
+        sh:message "The MDRM identifier must be the eight-character mnemonic plus item code." ;
+    ] .
+
+bank:UsageMustNameItsFormShape a sh:NodeShape ;
+    sh:targetClass bank:ItemUsage ;
+    rdfs:label "a reporting item must say which form collects it" ;
+    sh:sparql [
+        sh:message "This item usage names no reporting form, so there is no way to determine which collection imposes it, who must file it, or under what instructions it is defined." ;
+        sh:severity sh:Warning ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this a bank:ItemUsage .
+                FILTER NOT EXISTS { $this bank:onForm ?f }
+            }
+        """ ;
+    ] .
+
+bank:ConceptMustBeDefinedShape a sh:NodeShape ;
+    sh:targetClass bank:ReportingConcept ;
+    rdfs:label "a reporting concept should carry a definition" ;
+    sh:sparql [
+        sh:message "This reporting concept has a name but no published definition anywhere in the dictionary. A business glossary entry that is only a label cannot settle a mapping dispute." ;
+        sh:severity sh:Warning ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this a bank:ReportingConcept .
+                FILTER NOT EXISTS { $this bank:hasDefinition ?d }
+            }
+        """ ;
+    ] .
+
+bank:ScopeInProseShape a sh:NodeShape ;
+    sh:targetClass bank:ReportingConcept ;
+    rdfs:label "form-specific scope should be structure, not prose" ;
+    sh:sparql [
+        sh:message "This concept's single published definition carries form-specific or period-specific scope inside free text rather than as structure, so the difference between one form's meaning and another's is not machine-readable." ;
+        sh:severity sh:Warning ;
+        sh:select """
+            PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+            SELECT $this WHERE {
+                $this bank:definedOnlyInProse true .
+            }
+        """ ;
+    ] .

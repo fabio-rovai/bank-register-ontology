@@ -1,0 +1,23 @@
+{
+ "entity": {
+  "institutions": 4250,
+  "lei_assertions": 1733,
+  "nonconformant": 1733,
+  "ambiguous": 9,
+  "unresolvable": 3,
+  "parent_cases": 2,
+  "control_assertions": 3560,
+  "lapsed": 283,
+  "resolved_entities": 1715
+ },
+ "concept": {
+  "concepts": 47305,
+  "usages": 87702,
+  "forms": 181,
+  "series": 855,
+  "open_ended": 52255,
+  "no_definition": 27445,
+  "prose_scope": 1278
+ },
+ "triples": 1123634
+}

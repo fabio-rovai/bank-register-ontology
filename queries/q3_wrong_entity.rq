@@ -1,0 +1,12 @@
+# Institutions whose identifier resolves to a different legal entity,
+# characteristically the parent holding company. Expected: 2.
+PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+SELECT ?name ?value ?resolvedName ?assets WHERE {
+  ?inst a bank:InsuredDepositoryInstitution ;
+        bank:legalName ?name ;
+        bank:totalAssets ?assets ;
+        bank:identifiedBy ?a .
+  ?a bank:denotesDifferentEntity true ;
+     bank:assertedValue ?value ;
+     bank:gleifLegalName ?resolvedName .
+} ORDER BY DESC(?assets)

@@ -1,0 +1,15 @@
+# The same item code is confidential on one form and public on another:
+# disclosure status cannot be derived from the identifier alone. This is
+# the query that justifies reifying ItemUsage.
+PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+SELECT ?code ?label (COUNT(DISTINCT ?conf) AS ?distinctStates)
+                    (COUNT(DISTINCT ?form) AS ?forms) WHERE {
+  ?u a bank:ItemUsage ;
+     bank:usageOf ?c ;
+     bank:confidentiality ?conf ;
+     bank:onForm ?form .
+  ?c bank:itemCode ?code ; skos:prefLabel ?label .
+} GROUP BY ?code ?label
+HAVING (COUNT(DISTINCT ?conf) > 1)
+ORDER BY DESC(?forms) LIMIT 20

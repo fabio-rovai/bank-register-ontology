@@ -1,0 +1,12 @@
+# Asserted values compatible with more than one real LEI: identifiers
+# that do not identify. Expected: 9.
+PREFIX bank: <https://gov.tesseract.academy/def/banking#>
+SELECT ?name ?value ?candidates WHERE {
+  ?inst a bank:InsuredDepositoryInstitution ;
+        bank:legalName ?name ;
+        bank:identifiedBy ?a .
+  ?a a bank:LEIAssertion ;
+     bank:assertedValue ?value ;
+     bank:resolutionCardinality ?candidates .
+  FILTER (?candidates > 1)
+} ORDER BY DESC(?candidates)

@@ -1,0 +1,13 @@
+# Every institution whose published LEI is truncated, largest first.
+# Expected: all 1,733 LEI-carrying active institutions.
+PREFIX bank:    <https://gov.tesseract.academy/def/banking#>
+PREFIX banksch: <https://gov.tesseract.academy/def/banking/scheme#>
+SELECT ?name ?value ?assets WHERE {
+  ?inst a bank:InsuredDepositoryInstitution ;
+        bank:legalName ?name ;
+        bank:totalAssets ?assets ;
+        bank:identifiedBy ?a .
+  ?a a bank:LEIAssertion ;
+     bank:assertedValue ?value ;
+     bank:nonConformanceReason banksch:Truncated .
+} ORDER BY DESC(?assets)

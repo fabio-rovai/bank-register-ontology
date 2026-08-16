@@ -1,0 +1,219 @@
+@prefix bank:    <https://gov.tesseract.academy/def/banking#> .
+@prefix banksch: <https://gov.tesseract.academy/def/banking/scheme#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# Scheme rules as DATA.
+#
+# The pipeline computes conformance by reading these facts, not by
+# hardcoding "an LEI is 20 characters". That is what lets a shape
+# say "this value is 16 characters where its own scheme declares
+# 20" without the rule being written twice.
+#################################################################
+
+banksch:IdentifierSchemes a skos:ConceptScheme ;
+    dcterms:title "Identifier schemes in US bank register data"@en ;
+    skos:hasTopConcept banksch:LEI, banksch:RSSD, banksch:FDICCert,
+                       banksch:CIK, banksch:NMLSID, banksch:OCCCharter,
+                       banksch:ABARoutingNumber, banksch:UNINUM .
+
+bank:expectedLength a rdfs:Property ;
+    rdfs:label "expected length in characters"@en .
+bank:characterSet a rdfs:Property ;
+    rdfs:label "permitted character set"@en .
+bank:caseRule a rdfs:Property ;
+    rdfs:label "case rule"@en .
+bank:checkDigitAlgorithm a rdfs:Property ;
+    rdfs:label "check digit algorithm"@en ;
+    rdfs:comment "Absent where the scheme defines none. That absence is the point: an identifier with no check digit cannot be validated in isolation at any cost, so a typo in it survives every control that does not perform a lookup."@en .
+bank:scopeLevel a rdfs:Property ;
+    rdfs:label "scope level"@en ;
+    rdfs:comment "The population within which the identifier is unique: global, or the issuing authority's register."@en .
+bank:authoritativeRegister a rdfs:Property ;
+    rdfs:label "authoritative register"@en .
+
+banksch:LEI a skos:Concept ;
+    skos:prefLabel "Legal Entity Identifier"@en ;
+    skos:notation "LEI" ;
+    skos:definition "ISO 17442 legal entity identifier."@en ;
+    bank:expectedLength 20 ;
+    bank:characterSet "[0-9A-Z]" ;
+    bank:caseRule "uppercase" ;
+    bank:checkDigitAlgorithm "ISO 7064 MOD 97-10" ;
+    bank:scopeLevel "global" ;
+    bank:authoritativeRegister "GLEIF" ;
+    skos:scopeNote "Characters 1-4 are the issuing LOU prefix, 5-6 are reserved, 7-18 identify the entity, 19-20 are check digits. Truncating to 16 characters therefore discards two entity characters AND both check digits, leaving 36^2 = 1296 arithmetically possible completions."@en .
+
+banksch:RSSD a skos:Concept ;
+    skos:prefLabel "RSSD identifier"@en ;
+    skos:notation "RSSD" ;
+    skos:definition "Federal Reserve Replication Server System Database identifier for a financial institution or holding company."@en ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "Federal Reserve NIC register" ;
+    bank:authoritativeRegister "FFIEC National Information Center" ;
+    skos:scopeNote "Sequential integer key. No check digit is defined, so no arithmetic control can detect a mistyped RSSD."@en .
+
+banksch:FDICCert a skos:Concept ;
+    skos:prefLabel "FDIC certificate number"@en ;
+    skos:notation "CERT" ;
+    skos:definition "The certificate number the FDIC assigns to an insured depository institution."@en ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "FDIC insured-institution register" ;
+    bank:authoritativeRegister "FDIC BankFind" ;
+    skos:scopeNote "Identifies the INSURED INSTITUTION, not the legal entity, and survives changes of name and charter. No check digit."@en .
+
+banksch:CIK a skos:Concept ;
+    skos:prefLabel "SEC Central Index Key"@en ;
+    skos:notation "CIK" ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "SEC EDGAR" ;
+    bank:authoritativeRegister "SEC EDGAR" .
+
+banksch:NMLSID a skos:Concept ;
+    skos:prefLabel "NMLS unique identifier"@en ;
+    skos:notation "NMLS" ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "NMLS registry" .
+
+banksch:OCCCharter a skos:Concept ;
+    skos:prefLabel "OCC charter number"@en ;
+    skos:notation "OCC" ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "OCC charter register" .
+
+banksch:ABARoutingNumber a skos:Concept ;
+    skos:prefLabel "ABA routing transit number"@en ;
+    skos:notation "RTN" ;
+    bank:expectedLength 9 ;
+    bank:characterSet "[0-9]" ;
+    bank:checkDigitAlgorithm "weighted mod 10 (3,7,1)" ;
+    bank:scopeLevel "US payment system" ;
+    skos:scopeNote "Identifies a routing endpoint, not a legal entity. One institution may hold several."@en .
+
+banksch:UNINUM a skos:Concept ;
+    skos:prefLabel "FDIC UNINUM"@en ;
+    skos:notation "UNINUM" ;
+    bank:characterSet "[0-9]" ;
+    bank:scopeLevel "FDIC internal" .
+
+#################################################################
+# Why a value fails its scheme. Distinguishing these matters: a
+# truncated identifier is not "invalid", it is UNTESTABLE, and the
+# remediation is completely different.
+#################################################################
+
+banksch:NonConformanceReasons a skos:ConceptScheme ;
+    dcterms:title "Identifier non-conformance reasons"@en ;
+    skos:hasTopConcept banksch:Truncated, banksch:WrongCase,
+                       banksch:FailedCheckDigits, banksch:Malformed .
+
+banksch:Truncated a skos:Concept ;
+    skos:prefLabel "truncated"@en ;
+    skos:definition "The value is a proper prefix of a well-formed value in its scheme: shorter than the declared length, otherwise conformant."@en ;
+    skos:scopeNote "Where the discarded characters include the check digits, the value cannot be validated in isolation and must be resolved against the authoritative register. Truncation is silent: it produces a value that looks like an identifier."@en .
+
+banksch:WrongCase a skos:Concept ;
+    skos:prefLabel "wrong case"@en ;
+    skos:definition "The value uses lowercase characters where the scheme declares uppercase. Recoverable by normalisation, and therefore a formatting defect rather than an information loss."@en .
+
+banksch:FailedCheckDigits a skos:Concept ;
+    skos:prefLabel "failed check digits"@en ;
+    skos:definition "The value has the declared length and character set but fails the scheme's check-digit arithmetic. Such a value cannot exist in the authoritative register."@en .
+
+banksch:Malformed a skos:Concept ;
+    skos:prefLabel "malformed"@en ;
+    skos:definition "The value violates the scheme's character set or is otherwise unusable."@en .
+
+#################################################################
+# Resolution outcomes.
+#################################################################
+
+banksch:ResolutionMethods a skos:ConceptScheme ;
+    dcterms:title "Identifier resolution methods"@en ;
+    skos:hasTopConcept banksch:ExactLookup, banksch:PrefixJoin, banksch:Unresolved .
+
+banksch:ExactLookup a skos:Concept ;
+    skos:prefLabel "exact lookup"@en ;
+    skos:definition "The asserted value was found verbatim in the authoritative register."@en .
+banksch:PrefixJoin a skos:Concept ;
+    skos:prefLabel "prefix join"@en ;
+    skos:definition "The asserted value was matched as a prefix against every record in the authoritative register, because it is too short to look up exactly. Uniqueness is a property of the register on the day, not a guarantee."@en .
+banksch:Unresolved a skos:Concept ;
+    skos:prefLabel "unresolved"@en ;
+    skos:definition "No record in the authoritative register is compatible with the asserted value."@en .
+
+#################################################################
+# Control assertion types: who says an entity controls another.
+#################################################################
+
+banksch:ControlTypes a skos:ConceptScheme ;
+    dcterms:title "Control assertion types"@en ;
+    skos:hasTopConcept banksch:FDICHighHolder, banksch:GLEIFDirectParent,
+                       banksch:GLEIFUltimateParent .
+
+banksch:FDICHighHolder a skos:Concept ;
+    skos:prefLabel "FDIC high holder"@en ;
+    skos:definition "The regulatory high holder the FDIC records against an insured institution (RSSDHCR), keyed by RSSD."@en .
+banksch:GLEIFDirectParent a skos:Concept ;
+    skos:prefLabel "GLEIF direct accounting consolidating parent"@en ;
+    skos:definition "GLEIF Level 2 IS_DIRECTLY_CONSOLIDATED_BY, keyed by LEI."@en .
+banksch:GLEIFUltimateParent a skos:Concept ;
+    skos:prefLabel "GLEIF ultimate accounting consolidating parent"@en ;
+    skos:definition "GLEIF Level 2 IS_ULTIMATELY_CONSOLIDATED_BY, keyed by LEI."@en .
+
+#################################################################
+# MDRM item types. The Federal Reserve's own README documents seven
+# values; the published dictionary uses six. banksch:Examination is
+# documented and never used, which is recorded here rather than
+# quietly dropped.
+#################################################################
+
+banksch:MDRMItemTypes a skos:ConceptScheme ;
+    dcterms:title "MDRM item types"@en ;
+    skos:hasTopConcept banksch:Financial, banksch:Derived, banksch:Structure,
+                       banksch:Percentage, banksch:Rate, banksch:Projected,
+                       banksch:Examination .
+
+banksch:Financial a skos:Concept ; skos:notation "F" ;
+    skos:prefLabel "financial/reported"@en ;
+    skos:definition "Item is submitted by the reporter."@en .
+banksch:Derived a skos:Concept ; skos:notation "D" ;
+    skos:prefLabel "derived"@en ;
+    skos:definition "Item is derived from other stored variables."@en .
+banksch:Structure a skos:Concept ; skos:notation "S" ;
+    skos:prefLabel "structure"@en ;
+    skos:definition "Item describes an institution."@en .
+banksch:Percentage a skos:Concept ; skos:notation "P" ;
+    skos:prefLabel "percentage"@en ;
+    skos:definition "Item is stored as a percentage value, e.g. 28% stored as 28."@en .
+banksch:Rate a skos:Concept ; skos:notation "R" ;
+    skos:prefLabel "rate"@en ;
+    skos:definition "Item is stored as a decimal value, e.g. 28% stored as .28."@en .
+banksch:Projected a skos:Concept ; skos:notation "J" ;
+    skos:prefLabel "projected"@en ;
+    skos:definition "Item is a projected value with an associated projection period."@en .
+banksch:Examination a skos:Concept ; skos:notation "E" ;
+    skos:prefLabel "examination/supervision"@en ;
+    skos:definition "Item pertains to banking supervision data."@en ;
+    skos:scopeNote "Documented in the MDRM README and used on zero rows of the published dictionary."@en .
+
+#################################################################
+# Source systems.
+#################################################################
+
+banksch:SourceSystems a skos:ConceptScheme ;
+    dcterms:title "Source systems"@en ;
+    skos:hasTopConcept banksch:FDICBankFind, banksch:GLEIFGoldenCopy, banksch:FedMDRM .
+
+banksch:FDICBankFind a skos:Concept ;
+    skos:prefLabel "FDIC BankFind institutions API"@en ;
+    skos:definition "api.fdic.gov/banks/institutions, the FDIC's public register of insured depository institutions."@en .
+banksch:GLEIFGoldenCopy a skos:Concept ;
+    skos:prefLabel "GLEIF golden copy"@en ;
+    skos:definition "The Global Legal Entity Identifier Foundation's published concatenated files, Level 1 (entity records) and Level 2 (relationship records)."@en .
+banksch:FedMDRM a skos:Concept ;
+    skos:prefLabel "Federal Reserve MDRM"@en ;
+    skos:definition "The Micro Data Reference Manual, the Federal Reserve's published data dictionary of regulatory reporting items."@en .
