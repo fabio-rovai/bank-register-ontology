@@ -46,7 +46,7 @@ These are real gaps and they constrain what this build can claim.
 
 ## Not yet done
 
-- The concept layer is not routinely SHACL-gated because its shapes are `FILTER NOT EXISTS` constraints over 47,305 concepts and 87,702 usages; pass `--full` to `pipeline/validate.py` to run it.
+- The concept layer is not gated by default because its shapes are `FILTER NOT EXISTS` constraints over 47,305 concepts and 87,702 usages, which takes minutes rather than seconds; pass `--full` to `pipeline/validate.py` to run it. It **was** run for this build: `build/bro-concept.ttl` parsed at 994,577 triples in 28.6 s and validated in 317.3 s, independently re-deriving 27,445 concepts with no definition, 7,171 usages naming no reporting form, and 1,278 concepts carrying scope only in prose. All three match the set-based counts exactly.
 - No FIBO alignment is asserted. Whether FIBO models US bank register concepts such as RSSD or FDIC certificate numbers was not verified in this build, so this repository makes **no claim** about a FIBO gap.
 - No claim is made about the Financial Data Transparency Act or any other current US rulemaking, because the currency check for it was not completed. Nothing in this repository depends on it.
 - Entity resolution against SEC EDGAR CIK, OCC charter numbers and NMLS identifiers is modelled in the SKOS registry but not populated.
