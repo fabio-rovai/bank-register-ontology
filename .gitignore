@@ -9,3 +9,8 @@ data/*.jsonl
 data/*.zip
 build/*.ttl
 build/*.log
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out

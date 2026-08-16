@@ -1,0 +1,274 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,
+        backgroundcolor=\color{gray!8},columns=fullflexible}
+
+\title{\textbf{Truncated at the Source:\\A Census of Legal Entity Identifier Integrity\\in US Federal Bank Registers}}
+\author{Fabio Rovai\\\small The Tesseract Academy (Kampakis and Co Ltd)\\\small \texttt{fabio@thetesseractacademy.com}}
+\date{16 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+The Legal Entity Identifier is a twenty-character code whose final two characters are check digits under ISO 7064 MOD 97-10, and on 1 October 2026 a joint rule of nine US financial regulators establishes it as the federal legal entity identifier standard. We measure what those registers actually publish today. Every one of the 2,252 LEI values in the FDIC's public BankFind register is truncated to sixteen characters, discarding both check digits and two entity-identifying characters, so no published value can be validated in isolation and each admits 1,296 arithmetic completions. We show this loss is not merely lossy but ambiguous: a census over the complete Global LEI System of 3,403,760 records finds 33,841 sixteen-character prefixes shared by more than one legal entity, placing 216,965 identifiers, 6.37 per cent of the global population, in collision, with one prefix covering 100 entities. Nine FDIC values are consequently ambiguous. Resolving the remainder against the golden copy reveals sixteen values matching no LEI, twelve violating the uppercase rule, and two institutions carrying their parent holding company's identifier, confirmed against consolidation records and independently corroborated by the Federal Reserve's National Information Center, whose own LEI values are uniformly well formed. Separately, the Federal Reserve's MDRM data dictionary attaches exactly one name and definition per item code across up to sixty-four reporting forms with differing consolidation bases, and 58 per cent of its item codes carry no definition at all. We release an OWL 2 ontology, SKOS scheme registries and SHACL shapes that make identifier non-conformance, resolution cardinality and cross-register disagreement first-class, queryable state, together with a reproducible pipeline over 1,123,634 triples.
+\end{abstract}
+
+\section{Introduction}
+
+On 25 June 2026 nine US federal financial regulators published the Financial Data Transparency Act Joint Data Standards final rule (91 FR 38246, document 2026-12787), effective 1 October 2026. Its codified text establishes that ``the legal entity identifier is established to be ISO 17442, Financial Services, the Legal Entity Identifier (LEI)'', and requires that a data transmission or schema and taxonomy format must, to the extent practicable, ``enable high quality data through schemas, with accompanying metadata documented in machine-readable taxonomy or ontology models, which clearly define the semantic meaning of the data''.
+
+This paper asks a narrow empirical question that the rule makes timely: what do the federal bank registers actually publish today, measured against the standard they are about to adopt?
+
+The answer, for one field in one register, is unambiguous. The FDIC's public BankFind API carries an LEI field. Across all 27,836 institution records it returns, the length histogram of that field has exactly one bucket:
+
+\begin{lstlisting}
+{16: 2252}
+\end{lstlisting}
+
+\noindent Every published value is sixteen characters where ISO 17442 requires twenty.
+
+\paragraph{Scope, stated before the results.}
+The joint rule binds the agencies rather than reporting entities, and its own DATES section states that it ``will not change any reporting requirements without further action by the agencies''. Agency-specific rules are due approximately two years after promulgation and, as of August 2026, none has been proposed. Nothing measured here is evidence of non-compliance by any party. It is a baseline taken before the implementing rules are drafted. This framing matters because the rule's preamble expressly preserves the practices that allow identifier quality to degrade: a reporting entity ``need only report an LEI if the entity has one'', lapsed LEIs may still be reported, and agencies may adopt standards other than those established.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item A complete census of sixteen-character prefix ambiguity over the Global LEI System (Section~\ref{sec:collision}), establishing that truncation is not merely lossy but genuinely ambiguous for 6.37 per cent of all LEIs.
+  \item A measured account of identifier integrity in the FDIC BankFind register (Section~\ref{sec:fdic}), including truncation, case violation, unresolvability, ambiguity and wrong-entity assignment, independently corroborated against the Federal Reserve's National Information Center.
+  \item A structural analysis of the Federal Reserve's MDRM data dictionary (Section~\ref{sec:mdrm}) showing that definition is a pure function of item code across forms with differing consolidation bases.
+  \item An open OWL 2 ontology, SKOS registries and SHACL shapes (Section~\ref{sec:model}) in which identifier non-conformance and resolution cardinality are first-class queryable state, with a validation regime that recomputes every headline figure two independent ways (Section~\ref{sec:validation}).
+\end{enumerate}
+
+\section{Background}
+
+\subsection{The structure of the LEI}
+ISO 17442 defines a twenty-character alphanumeric code. Characters 1 to 4 are the prefix of the issuing Local Operating Unit (LOU), characters 5 and 6 are reserved, characters 7 to 18 identify the entity, and characters 19 and 20 are check digits computed under ISO 7064 MOD 97-10 over the preceding eighteen characters.
+
+The check digits are the mechanism that makes the LEI self-describing. Any system, without a network call, a licence or a lookup table, can determine whether a candidate value could possibly be a real identifier. This is the cheapest control in the identifier system, costing a single modulo operation.
+
+\subsection{Where quality is currently measured}
+The Global Legal Entity Identifier Foundation (GLEIF) operates a monthly data quality programme. Its July 2026 report gives an average Total Data Quality Score of 99.99 across 3,390,204 records, assessed over twelve criteria and 193 checks.
+
+Critically for this paper, those checks are scoped to what LEI issuers submit. GLEIF's rule \texttt{C000066}, ``Ensure LEI code is ISO 17442 compliant'', applies to records with an initial registration date on or after 7 July 2016 and an issued or pending status. No check anywhere in the system measures the integrity of an LEI as \emph{republished} by a downstream consumer. That gap is precisely where the values reported here reside, and identifying it is arguably this paper's most transferable observation.
+
+\subsection{US bank register identifiers}
+US banking data is keyed on several identifiers that are not the LEI. The FDIC certificate number (\texttt{CERT}) identifies an insured depository institution. The RSSD identifier, which expands to the Research, Statistics, Supervision and Regulation, and Discount and Credit Database, is the Federal Reserve's key.\footnote{The expansion ``Replication Server System Database'', widely repeated online, is a folk etymology. The expansion used here is the Federal Reserve's own, from its micro report series description.} The OCC assigns charter numbers to national banks.
+
+In the FFIEC Central Data Repository, RSSD is the primary key; in FDIC BankFind, the certificate number is. In both, the LEI is an attribute and the join key in neither. This is the structural reason the field has been permitted to degrade without any operational failure.
+
+\section{Method}
+
+\subsection{Sources}
+All sources are public, keyless and retrievable without registration.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Source & Retrieved & Extent \\
+\midrule
+FDIC BankFind institutions API & 16 Aug 2026 & 27,836 records, 4,250 active, 134 fields \\
+GLEIF golden copy, Level 1 & 16 Aug 2026, 08:00 & 3,403,760 LEI records, CDF 3.1 \\
+GLEIF golden copy, Level 2 & 16 Aug 2026, 08:00 & 484,565 relationship records \\
+Federal Reserve MDRM & 16 Aug 2026, 04:00 & 87,702 rows, 47,305 item codes \\
+FFIEC NIC attributes (corroboration) & Archived 23 May 2025 & 61,308 entity records \\
+\bottomrule
+\end{tabular}
+\caption{Sources and retrieval dates. All figures in this paper are timestamped to these retrievals; the registers are living systems and a re-fetch moves the totals.}
+\end{table}
+
+\noindent The NIC file was obtained from Internet Archive captures because the live FFIEC endpoint serves a CAPTCHA challenge to automated clients. It is fifteen months stale and is used strictly for corroboration, never as a source for any headline figure. No CAPTCHA was solved, circumvented or attacked.
+
+\subsection{Resolution procedure}
+Because a sixteen-character value cannot be looked up exactly, each FDIC value was matched as a \emph{prefix} against every LEI in the golden copy. This yields, per value, a resolution cardinality: zero (no compatible LEI exists), one (unique) or greater than one (ambiguous). Uniqueness is therefore a property of the register on a given day, not a guarantee: a value unique today becomes ambiguous if a new LEI is later issued under the same prefix. The ontology records this explicitly.
+
+Resolution is performed on uppercased values. Without case normalisation, 28 values fail to resolve rather than 16, the difference being twelve pure formatting defects.
+
+\subsection{Detecting wrong-entity assignment}
+\label{sec:method-parent}
+To test whether a value identifies the \emph{right} company, we used GLEIF Level 2 active consolidation edges (\texttt{IS\_DIRECTLY\_CONSOLIDATED\_BY} and \texttt{IS\_ULTIMATELY\_CONSOLIDATED\_BY}) to enumerate the children of each uniquely resolved entity, accepting a child as ``the bank'' only when its legal name matched the FDIC institution name under a normalisation key.
+
+The choice of key is decisive and is reported here because it is the failure mode a replicator would otherwise repeat. An initial implementation stripped tokens including \texttt{bancorp}, \texttt{bancshares}, \texttt{holding} and \texttt{financial} as corporate noise. Under that key, ``Associated Bank, National Association'' and ``ASSOCIATED BANC-CORP'' normalise identically, the pair is never flagged as a mismatch, and the method returns \emph{zero} wrong-entity cases. The corrected key removes only legal-form words (\texttt{n.a.}, \texttt{inc}, \texttt{llc}, \texttt{the}) and deliberately retains exactly the tokens that distinguish a parent from its subsidiary. The error was caught only because one case was known in advance, which is a general argument for holding out a known-answer instance when building any detector.
+
+\section{Results: the identifier fabric}
+\label{sec:fdic}
+
+\subsection{Truncation is systematic}
+All 2,252 non-empty LEI values in BankFind are exactly sixteen characters. There are no exceptions, no other lengths, and no variation by vintage or institution size, which is why this is characterised as a schema defect rather than data entry error. Table~\ref{tab:trunc} gives representative values.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Institution & Published by FDIC & Actual LEI \\
+\midrule
+JPMorgan Chase Bank, N.A. & \texttt{7H6GLXDRUGQFU57R} & \texttt{7H6GLXDRUGQFU57RNE97} \\
+Citibank, N.A. & \texttt{E57ODZWZ7FF32TWE} & \texttt{E57ODZWZ7FF32TWEFA76} \\
+Wells Fargo Bank, N.A. & \texttt{KB1H1DSPRFMYMCUF} & \texttt{KB1H1DSPRFMYMCUFXT09} \\
+Goldman Sachs Bank USA & \texttt{KD3XUN7C6T14HNAY} & \texttt{KD3XUN7C6T14HNAYLU02} \\
+U.S. Bank, N.A. & \texttt{6BYL5QZYBDK8S7L7} & \texttt{6BYL5QZYBDK8S7L73M02} \\
+\bottomrule
+\end{tabular}
+\caption{The published value is in each case the first sixteen characters of the real identifier.}
+\label{tab:trunc}
+\end{table}
+
+Two of the four discarded characters are check digits and two are entity-identifying. The first loss removes validation. The second makes the damage irreparable by arithmetic: given sixteen characters there are $36^2 = 1{,}296$ candidate completions before the check digits become determined. A truncated LEI cannot be repaired by recomputation, only by lookup.
+
+\subsection{Sixteen characters is demonstrably ambiguous}
+\label{sec:collision}
+To establish whether lookup is even well defined, we truncated every LEI in the Global LEI System to sixteen characters and counted collisions.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Measure & Value \\
+\midrule
+LEIs in the golden copy & 3,403,760 \\
+Distinct 16-character prefixes & 3,220,636 \\
+Prefixes shared by more than one LEI & 33,841 \\
+LEIs sitting in a collision & \textbf{216,965 (6.3743\%)} \\
+Maximum LEIs on a single prefix & 100 \\
+\bottomrule
+\end{tabular}
+\caption{Census, not a sample or an estimate. Every record was measured.}
+\end{table}
+
+The collisions are structural rather than coincidental. They cluster where an LOU allocates sequentially, so consecutive registrations differ only in their final characters. Every one of the nine ambiguous FDIC values was issued under LOU prefix \texttt{894500}.
+
+The consequence is concrete. The value \texttt{894500C8YTS0IB1B}, as published in a United States federal banking register, is compatible with Waterfall Bank (US), an agricultural firm in Bulgaria, a property company in France, and three companies in India. Madison County Bank shares its published identifier with a Canadian bond fund and a Guernsey limited partnership.
+
+\subsection{Non-conformance and unresolvability}
+Twelve values contain lowercase characters, which ISO 17442 does not permit; all twelve resolve once uppercased, making them formatting defects rather than information loss, and the cheapest available remediation. Sixteen values, after case normalisation, match no LEI in the golden copy at all; three of these belong to currently active institutions.
+
+\subsection{Wrong-entity assignment}
+Two institutions carry an identifier resolving to a different legal entity, both confirmed by GLEIF consolidation records under the method of Section~\ref{sec:method-parent}.
+
+The clearest case is FDIC certificate 5296, Associated Bank, National Association, of Green Bay, Wisconsin. Its record carries \texttt{549300N3CIN473IW}, which completes uniquely to \texttt{549300N3CIN473IW5094}. That identifier belongs to ASSOCIATED BANC-CORP, its parent holding company. The bank's own LEI, \texttt{ZF85QS7OXKPBG52R7N18}, appears nowhere in the register.
+
+A further fifteen values resolve to names containing \texttt{BANCORP}, \texttt{BANCSHARES} or \texttt{HOLDING}, including SoFi Bank, N.A. resolving to GOLDEN PACIFIC BANCORP. GLEIF publishes no active consolidation edge for these, so they are reported separately and are \emph{not} counted as confirmed.
+
+This is not a clerical curiosity. A bank and its holding company file different reports on different consolidation bases: FR Y-9C is the holding company consolidated, FFIEC 041 the bank alone. An identifier that fails to distinguish them attributes both to one legal person in any system that trusts the register.
+
+One further case requires no name judgement. CBI Bank \& Trust, an Iowa institution, resolves to a German entity, Herausgebergemeinschaft Wertpapier-Mitteilungen. The jurisdiction code alone settles it. Five other non-US resolutions are Puerto Rico institutions correctly registered under \texttt{PR} and are not errors.
+
+\subsection{Corroboration from a second federal register}
+The Federal Reserve's National Information Center records, for RSSD 917742 (Associated Bank, National Association, FDIC certificate 5296), \texttt{ID\_LEI = ZF85QS7OXKPBG52R7N18}; and separately, for RSSD 1199563 (Associated Banc-Corp), \texttt{ID\_LEI = 549300N3CIN473IW5094}. Two identifiers, correctly assigned, in the other federal register describing the same institution.
+
+More generally, across all 61,308 NIC entity records the \texttt{ID\_LEI} length histogram is \texttt{\{1: 53067, 20: 8241\}}: every populated value is a well-formed twenty characters. \textbf{The truncation is specific to the FDIC's publication and is not a property of US federal banking data.} This corroboration is independent of the GLEIF prefix join used elsewhere, so it does not share a failure mode with the primary method.
+
+\subsection{Coverage and lifecycle}
+Of 4,250 active insured institutions, 1,733 (40.8 per cent) carry any LEI, but those cover 92.20 per cent of total assets. Coverage tracks size closely: 8.8 per cent below \$100m, 35.9 per cent to \$1bn, 66.3 per cent to \$10bn, 89.4 per cent to \$100bn, 93.8 per cent above.
+
+283 active institutions hold an LEI whose GLEIF registration status is lapsed, retired or duplicate. This figure requires context to interpret honestly: GLEIF's July 2026 report places 35.0 per cent of all LEIs worldwide in a lapsed state, so 16.5 per cent among FDIC-insured banks is materially \emph{better} than the global population. The finding of interest is not that banks allow LEIs to lapse, but that the register publishes identifiers which cannot be validated at all.
+
+\section{Results: the reporting concept fabric}
+\label{sec:mdrm}
+
+The MDRM is the Federal Reserve's published dictionary of regulatory reporting items and the closest artifact US banking has to an official business glossary. Its mnemonics are the element-naming backbone of the FFIEC Call Report XBRL taxonomy, so its structural properties are inherited by every Call Report filed through the Central Data Repository.
+
+We expected the classic glossary pathology, one code carrying divergent definitions across forms. The measured result is the opposite and more interesting: \textbf{Item Name and Description are pure functions of the four-digit item code}, byte-for-byte identical across every form and every validity period. Divergence is zero across all 47,305 codes.
+
+Item code 2170, TOTAL ASSETS, carries a single definition across 117 mnemonics and 64 reporting forms. The dictionary achieves perfect consistency by being unable to represent the difference between total assets on FR Y-9C (consolidated holding company), FFIEC 041 (bank only) and FR Y-14A (projected under stress). Where form-specific scope is acknowledged at all, it appears as free text inside the single definition under a \texttt{COMPARABILITY:} heading, affecting 1,278 concepts.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Measure & Value \\
+\midrule
+Rows & 87,702 \\
+Distinct item codes & 47,305 \\
+Distinct MDRM identifiers (mnemonic + code) & 75,264 \\
+Reporting forms & 181 \\
+Item codes with no definition anywhere & 27,445 (58.0\%) \\
+\quad same, keyed on the eight-character identifier & 33,281 of 75,264 (44.2\%) \\
+Item codes confidential on one form, public on another & 1,816 \\
+MDRM identifiers changing confidentiality across periods & 1,342 \\
+Item codes with conflicting item type (across forms / within) & 1,746 / 637 \\
+Rows naming no reporting form & 7,171 \\
+\bottomrule
+\end{tabular}
+\caption{Both denominators for the definition-coverage figure are given, because the choice of key moves the headline.}
+\end{table}
+
+Where meaning cannot vary, the facets do. Confidentiality and item type are scoped by form and by period, and neither is derivable from the item code, which is exactly what a metadata layer keyed on the item code would assume.
+
+\paragraph{One problem, twice.} The two halves of this study are the same finding at different layers. In the entity fabric, scope was discarded when the identifier was truncated and then attached to the wrong level of the corporate hierarchy. In the concept fabric, scope was never encoded, because meaning is attached to a code spanning sixty-four forms with differing consolidation bases. \emph{Scope is never in the identifier.}
+
+\section{Modelling}
+\label{sec:model}
+
+Conventional identifier modelling treats an identifier as a designator: the identifier \emph{is} its referent. Such a model cannot represent any finding in this paper. A truncated value, an ambiguous value, or a value belonging to a different entity are all simply excluded from the model rather than described by it.
+
+The ontology therefore makes four commitments, each forced by an observed defect rather than chosen a priori.
+
+\begin{enumerate}
+  \item \textbf{Identifiers are reified assertions.} An \texttt{IdentifierAssertion} carries a value exactly as published, a scheme, the asserting source system, and computed conformance. Cross-system disagreement becomes a query.
+  \item \textbf{Resolution is data.} An assertion records \texttt{resolvesTo} and, crucially, \texttt{resolutionCardinality}. ``This value could denote six companies'' is storable state.
+  \item \textbf{Institution and legal entity are distinct classes.} An \texttt{InsuredDepositoryInstitution} is not identical to the \texttt{LegalEntity} its identifier resolves to. This is what makes the Associated Bank case \emph{statable} rather than merely wrong.
+  \item \textbf{Scope lives on usage.} Confidentiality and item type hang off a reified \texttt{ItemUsage} of a concept on a form in a period, because that is where the source data shows them varying.
+\end{enumerate}
+
+Scheme rules are declared as data in a SKOS registry: expected length, character set, case rule and check-digit algorithm. A shape reasons about the declared rule rather than restating it, and the absence of a check digit (as for RSSD and the FDIC certificate number) is itself recorded, distinguishing ``validated'' from ``unvalidatable''.
+
+The distinction that proved most consequential in practice is between a value that \emph{fails} its check digits and one that \emph{cannot be checked at all}. These are different governance states requiring different remediation, and a truncated LEI is the latter.
+
+\section{Validation}
+\label{sec:validation}
+
+The pipeline produces 1,123,634 triples. Validation is deliberately redundant.
+
+First, SHACL shapes encode one constraint per observed defect class, so the shapes file doubles as a specification of what is known to go wrong. Running \texttt{pyshacl} over the graph re-derives, from recorded state alone, all 1,733 truncations, 283 lapsed registrations, 11 case violations, 9 ambiguities, 3 unresolvable values and 2 wrong-entity assertions on the entity layer, and 27,445 undefined concepts, 7,171 form-less usages and 1,278 prose-scoped concepts on the concept layer.
+
+Second, every headline figure is computed twice: once set-based from the source data, and once by executing the shipped SPARQL query against the built graph. The report generator prints both and exits non-zero if they disagree. All checks agree exactly.
+
+\section{Related work}
+
+The space is partially occupied and the contribution here is correspondingly narrow.
+
+\textbf{FIBO} (EDM Association, MIT licensed) already declares the RSSD identifier (\texttt{usjrga:ResearchStatisticsSupervisionDiscountIdentifier}), the FDIC certificate number, the bank holding company, the LEI, registry lifecycle states including lapsed and retired, and the complete 43-code FFIEC NIC entity-type vocabulary in a development module. Verified at commit \texttt{119fa8c} (17 July 2026), what it lacks is the validating layer: zero \texttt{sh:NodeShape} across all 295 ontology files, zero \texttt{xsd:pattern} on the LEI class, and zero \texttt{skos:ConceptScheme}. FIBO asserts ISO 17442 conformance in prose while carrying no length or check-digit constraint, so a FIBO graph cannot detect that a sixteen-character string is not an LEI. It also cites the withdrawn ISO 17442:2012.
+
+\textbf{OFR Staff Discussion Paper 18-01} (Fan and Flood, 2018) modelled NIC ownership and control relations in OWL 2 and documented defects in the regulator's own metadata, the same rhetorical move made here. No ontology artifact was released.
+
+\textbf{FinRegOnt} (Ziemer, Jayzed Data Models) has published the FFIEC 031 Call Report transliterated from XBRL into OWL, in FIBO namespaces with filings keyed on FDIC certificate number, since 2017, under MIT and GPL, at roughly 1.4 million statements. It contains no SHACL, no SKOS registries, no GLEIF join and no computed cross-source disagreement; its own documentation notes that ``all joins are simple text label comparisons as in the original source''. Its content is frozen at 2017 and its \texttt{owl:imports} IRIs do not dereference.
+
+\textbf{GLEIF} publishes its own RDF rendering of the LEI model. A proposal to adopt SHACL for constraints in place of OWL restrictions has been open, without response, since January 2022.
+
+The specific contributions of this work are therefore: the first SHACL validation in this domain, the first SKOS registries carrying scheme rules as data, the first RDF rendering of MDRM and of FDIC BankFind, and the first computed cross-register disagreement between a US banking register and the Global LEI System.
+
+On novelty of the empirical findings we claim only what is defensible: no prior report of either the truncation or the collision census was found in a targeted search of GLEIF's publications, the LEI Regulatory Oversight Committee, FSB progress reports, OFR working papers, arXiv and GitHub. SSRN and Google Scholar were not searched.
+
+\section{Limitations}
+
+The FFIEC NIC live endpoint is CAPTCHA-gated, so the Federal Reserve's own hierarchy could not be compared against GLEIF's Level 2 consolidation data. The NIC file used for corroboration is fifteen months stale. Prefix uniqueness is a property of the register on the retrieval date, not a permanent guarantee. Counts are per institution in the graph and per distinct value in some set-based analyses, and differ slightly where two certificates share a value. The claim that the MDRM is definitionally flat is scoped to the distributed machine-readable file; the interactive web dictionary may present form-specific instruction text the export does not carry. Absence of an LEI in BankFind indicates register incompleteness and not that the institution lacks an LEI.
+
+\section{Discussion}
+
+It would be easy and wrong to read this as a story about institutional failure. A sixteen-character column is an ordinary engineering decision that became wrong when an external standard specified twenty, and it survived because nothing downstream ever failed loudly. That is how identifier defects persist: they produce values that still look like identifiers.
+
+The remediations are correspondingly ordinary. Widen the field. Uppercase on ingest, which repairs twelve records immediately. Validate check digits at entry, one modulo operation. Record the identifier of the insured institution rather than of whichever entity in the group was to hand.
+
+The more general observation concerns where quality is measured. GLEIF assesses what issuers submit, to a very high standard. Nothing assesses what a regulator republishes. Between those two well-governed surfaces sits an ungoverned one, and 2,252 identifiers have been sitting in it. As the FDTA implementing rules are drafted over the next two years, that is the gap worth closing, and it is closable with a single shape.
+
+\section*{Availability}
+
+Ontology, SKOS registries, SHACL shapes, pipeline, queries and generated reports are available under MIT (code) and CC BY 4.0 (ontology and reports) at \url{https://github.com/fabio-rovai/bank-register-ontology}. All results are reproducible from public sources with no registration or licensed data.
+
+\end{document}
