@@ -50,7 +50,7 @@ banksch:LEI a skos:Concept ;
 banksch:RSSD a skos:Concept ;
     skos:prefLabel "RSSD identifier"@en ;
     skos:notation "RSSD" ;
-    skos:definition "Federal Reserve Replication Server System Database identifier for a financial institution or holding company."@en ;
+    skos:definition "Federal Reserve RSSD identifier for a financial institution or holding company. RSSD expands to the Research, Statistics, Supervision and Regulation, and Discount and Credit Database, per the Federal Reserve's own micro report series description at federalreserve.gov/reportforms/mdrm/pdf/RSSD.PDF. The widely repeated expansion 'Replication Server System Database' is a folk etymology."@en ;
     bank:characterSet "[0-9]" ;
     bank:scopeLevel "Federal Reserve NIC register" ;
     bank:authoritativeRegister "FFIEC National Information Center" ;

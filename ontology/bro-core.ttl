@@ -96,7 +96,7 @@ bank:LEIAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
     rdfs:label "LEI assertion"@en .
 bank:RSSDAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
     rdfs:label "RSSD assertion"@en ;
-    rdfs:comment "The Federal Reserve's Replication Server System Database identifier. Carries no check digit, so a mistyped RSSD is undetectable without a lookup; the scheme registry records that absence as data."@en .
+    rdfs:comment "The Federal Reserve's RSSD identifier (Research, Statistics, Supervision and Regulation, and Discount and Credit Database). Carries no check digit, so a mistyped RSSD is undetectable without a lookup; the scheme registry records that absence as data."@en .
 bank:FDICCertAssertion a owl:Class ; rdfs:subClassOf bank:IdentifierAssertion ;
     rdfs:label "FDIC certificate assertion"@en .
 

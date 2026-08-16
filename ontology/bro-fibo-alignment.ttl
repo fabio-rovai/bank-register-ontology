@@ -1,0 +1,98 @@
+@prefix bank:      <https://gov.tesseract.academy/def/banking#> .
+@prefix banksch:   <https://gov.tesseract.academy/def/banking/scheme#> .
+@prefix usjrga:    <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/NorthAmericanEntities/USRegulatoryAgencies/> .
+@prefix usnic:     <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/NorthAmericanEntities/USNationalInformationCenterControlledVocabularies/> .
+@prefix fse:       <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/FinancialServicesEntities/> .
+@prefix be-le-lei: <https://spec.edmcouncil.org/fibo/ontology/BE/LegalEntities/LEIEntities/> .
+@prefix breg:      <https://spec.edmcouncil.org/fibo/ontology/FBC/FunctionalEntities/BusinessRegistries/> .
+@prefix cmns-rga:  <https://www.omg.org/spec/Commons/RegulatoryAgencies/> .
+@prefix owl:       <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs:      <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:      <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms:   <http://purl.org/dc/terms/> .
+
+<https://gov.tesseract.academy/def/banking/fibo-alignment>
+    a owl:Ontology ;
+    dcterms:title "BRO to FIBO alignment"@en ;
+    dcterms:creator "Fabio Rovai" ;
+    rdfs:comment """Alignment from the Bank Register Ontology to the EDM Council's FIBO.
+
+Verified against a shallow clone of github.com/edmcouncil/fibo at commit 119fa8c, dated 17 July 2026, 295 RDF files. Every FIBO IRI asserted below was confirmed to be declared in that commit before the mapping was written. FIBO serialises as RDF/XML using XML entity references (for example rdf:about="&fibo-fbc-fct-usjrga;FDICCertificateNumber"), so a naive grep for full IRIs returns false negatives; the expansions used here come from the ENTITY declarations in the files themselves.
+
+WHAT FIBO ALREADY HAS, and this repository does not duplicate or dispute:
+  - the RSSD identifier, as usjrga:ResearchStatisticsSupervisionDiscountIdentifier
+  - the FDIC certificate number, as usjrga:FDICCertificateNumber
+  - the bank holding company, as fse:BankHoldingCompany
+  - the LEI, as be-le-lei:LegalEntityIdentifier
+  - registry entry lifecycle states, including breg:LapsedStatus and breg:RetiredStatus
+  - an abstract cmns-rga:RegulatoryReport in OMG Commons
+  - the complete 43-code FFIEC National Information Center entity-type vocabulary, in the
+    usnic: module, which is present in the development branch at Provisional maturity
+
+WHAT FIBO DOES NOT HAVE, measured in the same commit, and why this repository exists:
+  - sh:NodeShape occurrences across all 295 RDF files: ZERO. There is no SHACL anywhere.
+  - xsd:pattern in BE/LegalEntities/LEIEntities.rdf: ZERO. FIBO asserts conformance to
+    ISO 17442 in prose and carries no length, character-set or check-digit constraint,
+    so a FIBO graph cannot detect that a 16-character value is not an LEI. That is
+    precisely the defect this repository found 2,252 instances of.
+  - skos:ConceptScheme occurrences: ZERO. FIBO models code lists as OWL individuals
+    rather than SKOS registries, so scheme rules are not queryable as data.
+  - no instance data over the FDIC BankFind register, and no model of the MDRM.
+  - no vocabulary for an identifier assertion being WRONG. FIBO can say that a registry
+    holds an entry recording an identifier with a status. It has no way to say that two
+    systems disagree, that a value resolves ambiguously, or that an identifier recorded
+    against one entity denotes another. That gap is the whole design premise here.
+
+FIBO's LEI class cites https://www.iso.org/standard/59771.html, which is the withdrawn ISO 17442:2012. The current standard is ISO 17442-1:2020.
+
+No skos:exactMatch is asserted anywhere in this file. BRO's identifier classes are REIFIED ASSERTIONS about identifiers, whereas FIBO's are the identifiers themselves, so the relationship is systematically relatedMatch rather than equivalence. Asserting owl:equivalentClass here would be wrong."""@en .
+
+#################################################################
+# Scheme concepts. BRO's SKOS concepts name a scheme and carry its
+# rules as data; FIBO's classes are the identifiers in that scheme.
+# Related, deliberately not equivalent.
+#################################################################
+
+banksch:RSSD skos:relatedMatch usjrga:ResearchStatisticsSupervisionDiscountIdentifier ;
+    rdfs:comment "FIBO models the RSSD identifier directly. BRO's concept names the scheme and declares its length, character set and the absence of a check digit as data, which is what lets a shape reason about conformance."@en .
+
+banksch:FDICCert skos:relatedMatch usjrga:FDICCertificateNumber .
+
+banksch:LEI skos:relatedMatch be-le-lei:LegalEntityIdentifier ;
+    rdfs:comment "FIBO's LegalEntityIdentifier carries no xsd:pattern, no length restriction and no check-digit rule. BRO's concept declares expectedLength 20, characterSet [0-9A-Z], caseRule uppercase and checkDigitAlgorithm ISO 7064 MOD 97-10, which is what makes truncation and case violation detectable."@en .
+
+#################################################################
+# Assertion classes: reifications of what FIBO models directly.
+#################################################################
+
+bank:RSSDAssertion skos:relatedMatch usjrga:ResearchStatisticsSupervisionDiscountIdentifier ;
+    rdfs:comment "A reified assertion that a source system records this RSSD for this institution, not the identifier itself."@en .
+
+bank:FDICCertAssertion skos:relatedMatch usjrga:FDICCertificateNumber .
+
+bank:LEIAssertion skos:relatedMatch be-le-lei:LegalEntityIdentifier ;
+    rdfs:comment "A reified assertion carrying computed conformance and resolution state. FIBO has no counterpart for either, which is why the LEI truncation finding is not expressible in FIBO as it stands."@en .
+
+#################################################################
+# Entities.
+#################################################################
+
+bank:BankHoldingCompany skos:closeMatch fse:BankHoldingCompany ;
+    rdfs:comment "The closest correspondence in this alignment. FIBO's definition is adaptedFrom the OFR Annual Report 2012 glossary. Not asserted as equivalent because BRO's instances are minted from the FDIC's RSSDHCR high-holder field, which is one regulator's view of control rather than a definitional test."@en .
+
+bank:ReportingForm skos:relatedMatch cmns-rga:RegulatoryReport ;
+    rdfs:comment "cmns-rga:RegulatoryReport is an abstract class in OMG Commons with no subclasses and no US instances. BRO's ReportingForm is the collection instrument itself, for example FFIEC 041 or FR Y-9C, of which a report is an instance. Related, not the same."@en .
+
+#################################################################
+# Known divergence, recorded rather than hidden.
+#
+# BRO records GLEIF registration status as a string on the LEI
+# assertion, because that is how the golden copy publishes it.
+# FIBO models the same states as individuals (breg:LapsedStatus,
+# breg:RetiredStatus and siblings). Binding BRO's strings to those
+# individuals is a genuine improvement and is not done yet; it is
+# recorded here so the divergence is visible rather than silent.
+#################################################################
+
+bank:gleifRegistrationStatus skos:relatedMatch breg:LapsedStatus, breg:RetiredStatus ;
+    rdfs:comment "Divergence, not alignment. BRO carries the literal GLEIF status string; FIBO offers individuals for the same states. A future version should mint the FIBO individuals instead of strings."@en .
