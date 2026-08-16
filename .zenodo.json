@@ -1,0 +1,27 @@
+{
+  "upload_type": "software",
+  "title": "Bank Register Ontology (BRO)",
+  "description": "An open OWL 2 ontology, SKOS registries, and SHACL governance layer for the entity fabric and the regulatory-reporting concept fabric of US banking, built and validated against the FDIC BankFind register, the full GLEIF golden copy of 3,403,760 LEI records, and the Federal Reserve's MDRM data dictionary, joined into a 1,123,634-triple knowledge graph. It contains the first computed cross-register disagreement between a US banking register and the Global LEI System, including the finding that all 2,252 LEI values published by the FDIC are truncated to 16 of the 20 characters ISO 17442 requires. Code is MIT; ontology, SKOS registries, shapes and reports are CC BY 4.0.",
+  "creators": [
+    {
+      "name": "Rovai, Fabio",
+      "affiliation": "The Tesseract Academy (Kampakis and Co Ltd)"
+    }
+  ],
+  "license": "cc-by-4.0",
+  "keywords": [
+    "ontology",
+    "SHACL",
+    "banking",
+    "regulatory reporting",
+    "LEI",
+    "register assurance",
+    "identifier governance"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/fabio-rovai/bank-register-ontology"
+    }
+  ]
+}
