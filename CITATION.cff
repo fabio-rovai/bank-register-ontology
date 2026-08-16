@@ -2,7 +2,7 @@ cff-version: 1.2.0
 title: "Bank Register Ontology (BRO)"
 message: "If you use this ontology or its findings, please cite it."
 type: dataset
-version: 0.2.0
+version: 0.2.1
 authors:
   - given-names: Fabio
     family-names: Rovai

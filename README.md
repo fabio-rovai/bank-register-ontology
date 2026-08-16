@@ -1,5 +1,7 @@
 # Bank Register Ontology (BRO)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21970543.svg)](https://doi.org/10.5281/zenodo.21970543)
+
 An open OWL 2 ontology, SKOS registries, and SHACL governance layer for the **entity fabric and the regulatory-reporting concept fabric of US banking**, built and validated against the whole of three public sources on the same day:
 
 - the **FDIC BankFind** register of insured depository institutions (4,250 active, 27,836 all-time),
