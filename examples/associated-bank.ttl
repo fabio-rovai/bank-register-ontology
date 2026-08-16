@@ -1,0 +1,72 @@
+# Worked example: FDIC certificate 5296, Associated Bank, National Association.
+#
+# Extracted verbatim from build/bro.ttl, not hand-written, so it cannot drift
+# from the data. Read it in this order:
+#
+#   id:inst-cert-5296          the insured depository institution, $45.5bn,
+#                              187 domestic offices, Green Bay WI
+#   id:idassert-lei-5296       what the FDIC publishes as its LEI. The value is
+#                              16 characters, so schemeConformant is false and
+#                              the reason is banksch:Truncated
+#   bank:resolvesTo            the one real LEI compatible with that value...
+#   id:entity-lei-549300...    ...which is ASSOCIATED BANC-CORP, the PARENT
+#   bank:denotesDifferentEntity  true, because the institution is not that entity
+#   rdfs:seeAlso               the bank's own LEI, ZF85QS7OXKPBG52R7N18, which
+#                              appears nowhere in the FDIC register
+#
+# The point of the modelling: none of this is an error state in the ontology.
+# A truncated value, its resolution, its cardinality and the fact that it
+# denotes somebody else are all ordinary, queryable assertions.
+
+@prefix bank:    <https://gov.tesseract.academy/def/banking#> .
+@prefix banksch: <https://gov.tesseract.academy/def/banking/scheme#> .
+@prefix id:      <https://gov.tesseract.academy/id/banking/> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+id:control-fdic-5296 a bank:ControlAssertion .
+id:control-fdic-5296 bank:controlType banksch:FDICHighHolder .
+id:control-fdic-5296 bank:controlled id:inst-cert-5296 .
+id:control-fdic-5296 bank:controller id:entity-rssd-1199563 .
+id:control-fdic-5296 bank:sourceSystem banksch:FDICBankFind .
+id:entity-lei-549300N3CIN473IW5094 a bank:LegalEntity .
+id:entity-lei-549300N3CIN473IW5094 bank:legalName "ASSOCIATED BANC-CORP" .
+id:entity-lei-ZF85QS7OXKPBG52R7N18 a bank:LegalEntity .
+id:entity-lei-ZF85QS7OXKPBG52R7N18 bank:legalName "Associated Bank, National Association" .
+id:entity-rssd-1199563 a bank:BankHoldingCompany .
+id:entity-rssd-1199563 bank:legalName "ASSOCIATED BANC-CORP" .
+id:idassert-cert-5296 a bank:FDICCertAssertion .
+id:idassert-cert-5296 bank:assertedValue "5296" .
+id:idassert-cert-5296 bank:identifierScheme banksch:FDICCert .
+id:idassert-cert-5296 bank:schemeConformant true .
+id:idassert-cert-5296 bank:sourceSystem banksch:FDICBankFind .
+id:idassert-lei-5296 a bank:LEIAssertion .
+id:idassert-lei-5296 bank:assertedValue "549300N3CIN473IW" .
+id:idassert-lei-5296 bank:denotesDifferentEntity true .
+id:idassert-lei-5296 bank:gleifCountry "US" .
+id:idassert-lei-5296 bank:gleifEntityStatus "ACTIVE" .
+id:idassert-lei-5296 bank:gleifLegalName "ASSOCIATED BANC-CORP" .
+id:idassert-lei-5296 bank:gleifRegistrationStatus "ISSUED" .
+id:idassert-lei-5296 bank:identifierScheme banksch:LEI .
+id:idassert-lei-5296 bank:nonConformanceReason banksch:Truncated .
+id:idassert-lei-5296 bank:resolutionCardinality "1"^^xsd:integer .
+id:idassert-lei-5296 bank:resolutionMethod banksch:PrefixJoin .
+id:idassert-lei-5296 bank:resolvesTo id:entity-lei-549300N3CIN473IW5094 .
+id:idassert-lei-5296 bank:schemeConformant false .
+id:idassert-lei-5296 bank:sourceSystem banksch:FDICBankFind .
+id:idassert-rssd-5296 a bank:RSSDAssertion .
+id:idassert-rssd-5296 bank:assertedValue "917742" .
+id:idassert-rssd-5296 bank:identifierScheme banksch:RSSD .
+id:idassert-rssd-5296 bank:schemeConformant true .
+id:idassert-rssd-5296 bank:sourceSystem banksch:FDICBankFind .
+id:inst-cert-5296 a bank:InsuredDepositoryInstitution .
+id:inst-cert-5296 bank:domesticOffices "187"^^xsd:integer .
+id:inst-cert-5296 bank:identifiedBy id:idassert-cert-5296 .
+id:inst-cert-5296 bank:identifiedBy id:idassert-lei-5296 .
+id:inst-cert-5296 bank:identifiedBy id:idassert-rssd-5296 .
+id:inst-cert-5296 bank:isActive true .
+id:inst-cert-5296 bank:legalName "Associated Bank, National Association" .
+id:inst-cert-5296 bank:totalAssets "45537550"^^xsd:decimal .
+id:inst-cert-5296 rdfs:comment "Green Bay, WI" .
+id:inst-cert-5296 rdfs:seeAlso id:entity-lei-ZF85QS7OXKPBG52R7N18 .
