@@ -31,6 +31,10 @@ All figures from the 16 August 2026 FDIC fetch, the GLEIF golden copy published 
 
 The FDIC's own hierarchy fields are, separately, unusable: `PARCERT` is populated on **4 of 4,250** active institutions, and `ULTCERT` equals the institution's own certificate for all **4,245** that carry it. The holding-company link that does work is `RSSDHCR`, present on **3,560 (83.8%)** across **3,340** distinct holding companies.
 
+**The Federal Reserve gets this right, which is what makes it a defect rather than a fact of life.** The FFIEC National Information Center's own bulk attributes file (snapshot of 23 May 2025, retrieved from the Internet Archive because the live endpoint is behind a CAPTCHA) records RSSD 917742, ASSOCIATED BANK, NATIONAL ASSOCIATION, FDIC certificate 5296, with `ID_LEI = ZF85QS7OXKPBG52R7N18`, the bank's own LEI; and separately records RSSD 1199563, ASSOCIATED BANC-CORP, with `ID_LEI = 549300N3CIN473IW5094`, the parent's. Two identifiers, correctly assigned, in the Federal Reserve's register. The FDIC's record for the same institution carries a truncation of the parent's.
+
+More generally, across all 61,308 NIC entity records the `ID_LEI` length distribution is `{1: 53067, 20: 8241}`: **every populated LEI in the Federal Reserve's register is a correct 20 characters.** The truncation is specific to the FDIC's publication, not a feature of US federal banking data.
+
 The same record also illustrates how far a register can lag the thing it describes. The FDIC reports Associated Bank at $45,537,550k with a reporting date of **31 March 2026**. Associated Banc-Corp's acquisition of American National Corporation **closed on 1 April 2026**, the very next day, and the company now reports total assets of approximately **$52 billion**. So a single record carries an identifier belonging to the parent company and a balance sheet that predates the group's most recent acquisition by one day. Neither is a scandal. Both are the ordinary condition of register data, and both are why anything built on it needs to model provenance and time rather than assume them.
 
 ### The reporting concept fabric

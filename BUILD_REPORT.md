@@ -16,9 +16,17 @@ Build date **16 August 2026**. This file records exactly what was fetched, what 
 These are real gaps and they constrain what this build can claim.
 
 - **FFIEC National Information Center bulk data** (`ffiec.gov/npw/FinancialReport/DataDownload`). Returns HTTP 403 with a page titled "CAPTCHA Error | FFIEC". This is a bot challenge, not a login or a licence restriction; the data is public but is not reachable by script from this environment. **Consequence:** the Federal Reserve's own holding-company hierarchy, with percentage equity and relationship levels, is absent from this build. The FDIC's `RSSDHCR` high-holder field is used instead, which gives one edge per insured institution and no ownership percentages. The comparison this build would most like to make, the Fed's view of who owns whom against GLEIF's, is therefore **not** made here.
-- **HMDA / FFIEC CFPB platform** (`ffiec.cfpb.gov`). The entire host is edge-blocked for this client, including `robots.txt`. **Consequence:** the HMDA panel file, which is a genuine published LEI to RSSD crosswalk, was not used. That file would independently corroborate or contradict the FDIC's LEI assignments, and it remains the single most valuable next input.
+- **HMDA / FFIEC CFPB platform** (`ffiec.cfpb.gov`). Not used in this build. **This entry originally recorded the host as edge-blocked, and that was wrong**: see the addendum below. The host serves normally to an honest `curl` User-Agent, and the 2023 HMDA panel (5,113 rows carrying `lei` and `respondent_rssd`, though no FDIC certificate number, which that file has never contained) is openly downloadable. It is queued for the next build rather than claimed in this one. Note also that the panel has been discontinued: 2023 is the final edition, and from 2024 the CFPB publishes only a transmittal sheet, which carries no RSSD at all.
 - **FFIEC Central Data Repository** Call Report bulk downloads were not exercised in this build.
 - **NMLS Consumer Access** offers no bulk download that was found.
+
+## Addendum, 16 August 2026: the NIC cross-check
+
+The FFIEC National Information Center bulk files were obtained after the first build, not from the live endpoint, which remains behind a CAPTCHA, but from **Internet Archive captures**: `CSV_ATTRIBUTES_ACTIVE.CSV` and `CSV_RELATIONSHIPS.CSV` from a **23 May 2025** snapshot. These are therefore **stale by roughly fifteen months** and are used only for corroboration, never as a primary source for any headline number. No CAPTCHA was solved, bypassed or attacked, and no credentials were used.
+
+What they corroborate, verified directly: NIC records RSSD 917742 (Associated Bank, National Association, FDIC certificate 5296) with `ID_LEI = ZF85QS7OXKPBG52R7N18`, and RSSD 1199563 (Associated Banc-Corp) with `ID_LEI = 549300N3CIN473IW5094`. Across all 61,308 NIC entity records the `ID_LEI` length histogram is `{1: 53067, 20: 8241}`, so every populated value is a well-formed 20-character LEI. This independently confirms both that the bank's own LEI exists and that the value the FDIC publishes belongs to its parent, from a source with no dependency on the GLEIF join used elsewhere in this build.
+
+A separate correction worth recording for anyone reproducing this work: `ffiec.cfpb.gov`, which serves the HMDA files, is **not** edge-blocked. It returns HTTP 403 only when a browser User-Agent is spoofed over a non-browser TLS stack, and returns 200 to an honest `curl` User-Agent. An earlier attempt failed because it tried to look like a browser.
 
 ## What was computed, and how
 
