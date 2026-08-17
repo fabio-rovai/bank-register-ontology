@@ -1,4 +1,4 @@
-# The FDIC publishes 2,252 Legal Entity Identifiers. Not one of them is a valid LEI.
+# An open ontology for US bank registers, tested against the FDIC, the Federal Reserve, and the Global LEI System
 
 *Draft for gov.tesseract.academy/research/bank-register-ontology. NOT PUBLISHED. Every figure is from a build of 16 August 2026 and is reproducible from https://github.com/fabio-rovai/bank-register-ontology.*
 
